@@ -7,7 +7,7 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, origins='*')
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'property_price_model.pkl')
 model = joblib.load(MODEL_PATH)
@@ -414,4 +414,5 @@ def health():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    port = int(os.environ.get('PORT', 7860))
+    app.run(host='0.0.0.0', port=port, debug=False)
