@@ -403,6 +403,15 @@ def market_stats():
     })
 
 
+@app.route('/', methods=['GET'])
+def index():
+    return jsonify({
+        'status': 'ok',
+        'message': 'House Price Prediction API is running',
+        'endpoints': ['/predict', '/houses', '/historical-rates', '/market-stats', '/health'],
+    })
+
+
 @app.route('/health', methods=['GET'])
 def health():
     return jsonify({
