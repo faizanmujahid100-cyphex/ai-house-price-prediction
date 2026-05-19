@@ -1,0 +1,21 @@
+# Node
+node_modules/
+dist/
+.DS_Store
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# Environment files (keep .env out of git)
+.env
+.env.local
+.env.production
+
+# Logs
+*.log
+npm-debug.log*
