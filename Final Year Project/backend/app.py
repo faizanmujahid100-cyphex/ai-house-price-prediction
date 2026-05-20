@@ -1,5 +1,6 @@
 import os
 import math
+import uuid
 import joblib
 import numpy as np
 import pandas as pd
@@ -8,6 +9,75 @@ from flask_cors import CORS
 
 app = Flask(__name__)
 CORS(app, origins='*')
+
+# ── In-memory user store ───────────────────────────────────────────────────────
+USERS   = []   # [{ id, username, email, password }]
+TOKENS  = {}   # token -> username
+
+
+def _find_user(username=None, email=None):
+    for u in USERS:
+        if username and u['username'] == username:
+            return u
+        if email and u['email'] == email:
+            return u
+    return None
+
+
+def _token_user(token):
+    username = TOKENS.get(token)
+    return _find_user(username=username) if username else None
+
+
+@app.route('/auth/register', methods=['POST'])
+def register():
+    data = request.get_json() or {}
+    username         = (data.get('username') or '').strip()
+    email            = (data.get('email') or '').strip().lower()
+    password         = data.get('password') or ''
+    confirm_password = data.get('confirm_password') or ''
+
+    if not username or not email or not password:
+        return jsonify({'error': 'All fields are required'}), 400
+    if password != confirm_password:
+        return jsonify({'error': 'Passwords do not match'}), 400
+    if len(password) < 6:
+        return jsonify({'error': 'Password must be at least 6 characters'}), 400
+    if _find_user(username=username):
+        return jsonify({'username': ['Username already taken']}), 400
+    if _find_user(email=email):
+        return jsonify({'email': ['Email already registered']}), 400
+
+    user = {'id': str(uuid.uuid4()), 'username': username, 'email': email, 'password': password}
+    USERS.append(user)
+    return jsonify({'message': 'Account created successfully'}), 201
+
+
+@app.route('/auth/login', methods=['POST'])
+def login():
+    data     = request.get_json() or {}
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+
+    user = _find_user(username=username)
+    if not user or user['password'] != password:
+        return jsonify({'error': 'Invalid username or password'}), 401
+
+    token = str(uuid.uuid4())
+    TOKENS[token] = username
+    return jsonify({
+        'access': token,
+        'user': {'id': user['id'], 'username': user['username'], 'email': user['email']},
+    })
+
+
+@app.route('/auth/me', methods=['GET'])
+def me():
+    token = request.headers.get('Authorization', '').replace('Bearer ', '')
+    user  = _token_user(token)
+    if not user:
+        return jsonify({'error': 'Unauthorized'}), 401
+    return jsonify({'id': user['id'], 'username': user['username'], 'email': user['email']})
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), 'property_price_model.pkl')
 model = joblib.load(MODEL_PATH)
