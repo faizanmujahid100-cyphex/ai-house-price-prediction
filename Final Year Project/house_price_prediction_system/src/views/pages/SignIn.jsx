@@ -21,8 +21,14 @@ export default function SignIn() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
       });
-      const data = await res.json();
-      if (!res.ok) { toast.error(data.error || "Login failed"); return; }
+      let data = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
+
+      if (!res.ok) {
+        if (res.status === 404) { toast.error("Server error: auth route not found. Please restart the backend."); return; }
+        toast.error(data.error || `Login failed (${res.status})`);
+        return;
+      }
 
       localStorage.setItem("access_token", data.access);
       localStorage.setItem("username", data.user.username);
@@ -31,7 +37,7 @@ export default function SignIn() {
       toast.success("Logged in successfully!");
       setTimeout(() => navigate("/"), 800);
     } catch {
-      toast.error("Cannot connect to server. Make sure the backend is running.");
+      toast.error("Cannot connect to server. Make sure the backend is running at http://localhost:7860");
     } finally {
       setLoading(false);
     }

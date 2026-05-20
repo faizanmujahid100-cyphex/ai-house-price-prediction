@@ -23,17 +23,23 @@ export default function SignUp() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData),
       });
-      const data = await res.json();
+
+      // Safely parse JSON — server might return HTML on 404/500
+      let data = {};
+      try { data = await res.json(); } catch { /* non-JSON response */ }
+
       if (!res.ok) {
         if (data.email)    { toast.error(`Email: ${data.email[0]}`); return; }
         if (data.username) { toast.error(`Username: ${data.username[0]}`); return; }
-        toast.error(data.error || "Registration failed");
+        if (data.error)    { toast.error(data.error); return; }
+        if (res.status === 404) { toast.error("Server error: auth route not found. Please restart the backend."); return; }
+        toast.error(`Registration failed (${res.status}). Please try again.`);
         return;
       }
       toast.success("Account created! Please login.");
       setTimeout(() => navigate("/sign_in"), 1000);
     } catch {
-      toast.error("Cannot connect to server. Make sure the backend is running.");
+      toast.error("Cannot connect to server. Make sure the backend is running at http://localhost:7860");
     } finally {
       setLoading(false);
     }
